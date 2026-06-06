@@ -1,0 +1,55 @@
+# =========================
+# Environment files
+# =========================
+.env
+.env.local
+.env.*.local
+
+# Keep examples
+!.env.example
+
+# =========================
+# Python / FastAPI
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# =========================
+# Database
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
+# Logs
+# =========================
+*.log
+*.err
+
+# =========================
+# Frontend (Vite/React)
+# =========================
+node_modules/
+dist/
+.vite/
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
