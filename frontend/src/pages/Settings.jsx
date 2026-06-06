@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Sun, Moon, Globe, Lock, Bell, Database, Shield, Save } from 'lucide-react';
+/* eslint-disable react-hooks/static-components */
+import { Sun, Moon, Globe, Lock, Bell, Database, Shield, Save } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 
 export default function SettingsPage() {
   const { darkMode, toggleTheme } = useTheme();
-  const { user } = useAuth();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
 

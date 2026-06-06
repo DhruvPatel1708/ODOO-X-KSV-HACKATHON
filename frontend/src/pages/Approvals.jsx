@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, AlertCircle, ChevronRight } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
-import { useAuth, RoleGuard } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { mockApprovals } from '../data/mockData';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import api from '../api/axios';
+import { approvalService } from '../services/approvalService';
 
 const tabs = ['pending', 'approved', 'rejected'];
 
@@ -23,10 +22,10 @@ export default function Approvals() {
     const fetchApprovals = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/approvals');
-        setApprovals(res.data);
+        const data = await approvalService.list();
+        setApprovals(data);
       } catch {
-        setApprovals(mockApprovals);
+        setApprovals([]);
       } finally {
         setLoading(false);
       }
@@ -38,12 +37,12 @@ export default function Approvals() {
 
   const handleApprove = async (id) => {
     try {
-      await api.put(`/api/approvals/${id}/approve`).catch(() => {});
-    } catch {}
-    setApprovals(prev => prev.map(a =>
-      a.id === id ? { ...a, status: 'approved', approver: 'Current User', action_date: new Date().toISOString(), step: 3, remarks: remarks[id] || 'Approved' } : a
-    ));
-    toast.success('Approval granted successfully');
+      const updated = await approvalService.approve(id, remarks[id] || 'Approved');
+      setApprovals(prev => prev.map(a => a.id === id ? updated : a));
+      toast.success('Approval granted successfully');
+    } catch {
+      toast.error('Failed to approve request');
+    }
   };
 
   const handleReject = async (id) => {
@@ -52,12 +51,12 @@ export default function Approvals() {
       return;
     }
     try {
-      await api.put(`/api/approvals/${id}/reject`, { remarks: remarks[id] }).catch(() => {});
-    } catch {}
-    setApprovals(prev => prev.map(a =>
-      a.id === id ? { ...a, status: 'rejected', approver: 'Current User', action_date: new Date().toISOString(), step: 3, remarks: remarks[id] } : a
-    ));
-    toast.success('Approval rejected');
+      const updated = await approvalService.reject(id, remarks[id]);
+      setApprovals(prev => prev.map(a => a.id === id ? updated : a));
+      toast.success('Approval rejected');
+    } catch {
+      toast.error('Failed to reject request');
+    }
   };
 
   const getStepStatus = (approval, stepIndex) => {

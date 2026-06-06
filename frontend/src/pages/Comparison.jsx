@@ -1,50 +1,79 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, ArrowUpDown, Star } from 'lucide-react';
 import { useToast } from '../components/Toast';
-import { mockRFQs, mockQuotations } from '../data/mockData';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { approvalService } from '../services/approvalService';
+import { quotationService } from '../services/quotationService';
+import { rfqService } from '../services/rfqService';
 
 export default function Comparison() {
   const toast = useToast();
   const [selectedRFQId, setSelectedRFQId] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [rfqs, setRfqs] = useState([]);
+  const [quotations, setQuotations] = useState([]);
 
-  const rfqsWithQuotes = mockRFQs.filter(rfq =>
-    mockQuotations.some(q => q.rfq_id === rfq.id)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [rfqData, quotationData] = await Promise.all([
+          rfqService.list(),
+          quotationService.list(),
+        ]);
+        setRfqs(rfqData);
+        setQuotations(quotationData);
+      } catch {
+        setRfqs([]);
+        setQuotations([]);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const rfqsWithQuotes = rfqs.filter(rfq =>
+    quotations.some(q => q.rfq_id === rfq.id)
   );
 
   const selectedRFQ = rfqsWithQuotes.find(r => r.id === parseInt(selectedRFQId));
 
-  const quotes = useMemo(() => {
-    if (!selectedRFQ) return [];
-    const rfqQuotes = mockQuotations.filter(q => q.rfq_id === selectedRFQ.id);
-    return [...rfqQuotes].sort((a, b) =>
-      sortOrder === 'asc' ? a.total_amount - b.total_amount : b.total_amount - a.total_amount
-    );
-  }, [selectedRFQ, sortOrder]);
+  const quotes = selectedRFQ
+    ? quotations
+        .filter(q => q.rfq_id === selectedRFQ.id)
+        .sort((a, b) => sortOrder === 'asc' ? a.total_amount - b.total_amount : b.total_amount - a.total_amount)
+    : [];
 
   // Get all unique items from the RFQ
   const itemNames = selectedRFQ?.items?.map(i => i.item_name) || [];
 
   // Find lowest price per item
-  const lowestPrices = useMemo(() => {
-    const map = {};
-    itemNames.forEach(itemName => {
-      let min = Infinity;
-      quotes.forEach(q => {
-        const item = q.items.find(i => i.item_name === itemName);
-        if (item && item.unit_price < min) min = item.unit_price;
-      });
-      map[itemName] = min;
+  const lowestPrices = {};
+  itemNames.forEach(itemName => {
+    let min = Infinity;
+    quotes.forEach(q => {
+      const item = q.items.find(i => i.item_name === itemName);
+      if (item && item.unit_price < min) min = item.unit_price;
     });
-    return map;
-  }, [quotes, itemNames]);
+    lowestPrices[itemName] = min;
+  });
 
-  const handleSelectVendor = (quote) => {
+  const handleSelectVendor = async (quote) => {
     if (window.confirm(`Are you sure you want to select ${quote.vendor_name}? This will proceed to the Approval workflow.`)) {
-      setSelectedVendor(quote.id);
-      toast.success(`${quote.vendor_name} selected. Proceeding to Approval workflow.`);
+      try {
+        await approvalService.create({
+          rfq_id: selectedRFQ.id,
+          quotation_id: quote.id,
+          rfq_title: selectedRFQ.title,
+          rfq_number: selectedRFQ.rfq_number,
+          vendor_name: quote.vendor_name,
+          quote_amount: quote.total_amount,
+          requested_by: 'Current User',
+        });
+        setSelectedVendor(quote.id);
+        toast.success(`${quote.vendor_name} selected. Proceeding to Approval workflow.`);
+      } catch {
+        toast.error('Failed to create approval request');
+      }
     }
   };
 

@@ -4,9 +4,9 @@ import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
 import { RoleGuard } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { mockPurchaseOrders } from '../data/mockData';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import api from '../api/axios';
+import { invoiceService } from '../services/invoiceService';
+import { poService } from '../services/poService';
 
 const statusTabs = ['All', 'draft', 'sent', 'confirmed', 'closed'];
 
@@ -21,10 +21,10 @@ export default function PurchaseOrders() {
     const fetchPOs = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/purchase-orders');
-        setPos(res.data);
+        const data = await poService.list();
+        setPos(data);
       } catch {
-        setPos(mockPurchaseOrders);
+        setPos([]);
       } finally {
         setLoading(false);
       }
@@ -44,8 +44,13 @@ export default function PurchaseOrders() {
     { key: 'status', label: 'Status', render: (val) => <StatusBadge status={val} /> },
   ];
 
-  const handleGenerateInvoice = (po) => {
-    toast.success(`Invoice generated for ${po.po_number}`);
+  const handleGenerateInvoice = async (po) => {
+    try {
+      await invoiceService.generate(po.id);
+      toast.success(`Invoice generated for ${po.po_number}`);
+    } catch {
+      toast.error('Failed to generate invoice');
+    }
   };
 
   return (

@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { FileText, ClipboardList, CheckSquare, ShoppingCart, Receipt, Filter, Calendar } from 'lucide-react';
+import { FileText, ClipboardList, CheckSquare, ShoppingCart, Receipt, Calendar } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
-import { mockActivityLogs } from '../data/mockData';
 import { formatRelativeTime } from '../utils/formatters';
-import api from '../api/axios';
+import { activityService } from '../services/activityService';
 
 const typeConfig = {
   rfq: { icon: FileText, color: 'bg-blue-500', label: 'RFQ' },
@@ -24,10 +23,10 @@ export default function ActivityLogs() {
     const fetchLogs = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/activity-logs');
-        setLogs(res.data);
+        const data = await activityService.list();
+        setLogs(data);
       } catch {
-        setLogs(mockActivityLogs);
+        setLogs([]);
       } finally {
         setLoading(false);
       }
@@ -90,11 +89,9 @@ export default function ActivityLogs() {
           <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200 hidden md:block" />
 
           <div className="space-y-4">
-            {filtered.map((log, index) => {
+            {filtered.map((log) => {
               const config = typeConfig[log.type] || typeConfig.rfq;
               const Icon = config.icon;
-              const isLeft = index % 2 === 0;
-
               return (
                 <div key={log.id} className="flex gap-4 items-start group">
                   {/* Icon */}

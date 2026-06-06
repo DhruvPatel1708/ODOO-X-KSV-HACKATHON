@@ -5,9 +5,11 @@ import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tool
 import AnalyticsCard from '../components/AnalyticsCard';
 import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
-import { mockVendors, mockRFQs, mockApprovals, mockPurchaseOrders } from '../data/mockData';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import api from '../api/axios';
+import { approvalService } from '../services/approvalService';
+import { poService } from '../services/poService';
+import { rfqService } from '../services/rfqService';
+import { vendorService } from '../services/vendorService';
 
 const spendData = [
   { month: 'Jul', amount: 4200000 },
@@ -31,24 +33,28 @@ export default function Dashboard() {
   const [vendors, setVendors] = useState([]);
   const [rfqs, setRfqs] = useState([]);
   const [approvals, setApprovals] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [vRes, rRes, aRes] = await Promise.all([
-          api.get('/api/vendors').catch(() => null),
-          api.get('/api/rfqs').catch(() => null),
-          api.get('/api/approvals').catch(() => null),
+        const [vendorsData, rfqsData, approvalsData, poData] = await Promise.all([
+          vendorService.list(),
+          rfqService.list(),
+          approvalService.list(),
+          poService.list(),
         ]);
-        setVendors(vRes?.data || mockVendors);
-        setRfqs(rRes?.data || mockRFQs);
-        setApprovals(aRes?.data || mockApprovals);
+        setVendors(vendorsData);
+        setRfqs(rfqsData);
+        setApprovals(approvalsData);
+        setPurchaseOrders(poData);
       } catch {
-        setVendors(mockVendors);
-        setRfqs(mockRFQs);
-        setApprovals(mockApprovals);
+        setVendors([]);
+        setRfqs([]);
+        setApprovals([]);
+        setPurchaseOrders([]);
       } finally {
         setLoading(false);
       }
@@ -56,10 +62,10 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  const activeVendors = (vendors.length > 0 ? vendors : mockVendors).filter(v => v.status === 'active').length;
-  const activeRfqs = (rfqs.length > 0 ? rfqs : mockRFQs).filter(r => r.status === 'active').length;
-  const pendingApprovals = (approvals.length > 0 ? approvals : mockApprovals).filter(a => a.status === 'pending').length;
-  const totalPOValue = mockPurchaseOrders.reduce((sum, po) => sum + po.total, 0);
+  const activeVendors = vendors.filter(v => v.status === 'active').length;
+  const activeRfqs = rfqs.filter(r => r.status === 'active').length;
+  const pendingApprovals = approvals.filter(a => a.status === 'pending').length;
+  const totalPOValue = purchaseOrders.reduce((sum, po) => sum + po.total, 0);
 
   const rfqColumns = [
     { key: 'rfq_number', label: 'RFQ #' },
@@ -69,7 +75,7 @@ export default function Dashboard() {
     { key: 'status', label: 'Status', render: (val) => <StatusBadge status={val} /> },
   ];
 
-  const displayApprovals = (approvals.length > 0 ? approvals : mockApprovals).filter(a => a.status === 'pending');
+  const displayApprovals = approvals.filter(a => a.status === 'pending');
 
   return (
     <div className="space-y-6">
@@ -130,7 +136,7 @@ export default function Dashboard() {
           </div>
           <DataTable
             columns={rfqColumns}
-            data={(rfqs.length > 0 ? rfqs : mockRFQs).slice(0, 5)}
+            data={rfqs.slice(0, 5)}
             loading={loading}
             onRowClick={() => navigate('/rfqs')}
             emptyMessage="No RFQs found"

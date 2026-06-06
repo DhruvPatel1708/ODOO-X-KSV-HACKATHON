@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend
@@ -6,6 +6,7 @@ import {
 import { DollarSign, TrendingUp, Building2, Truck, Download, Star } from 'lucide-react';
 import AnalyticsCard from '../components/AnalyticsCard';
 import { formatCurrency, generateCSV } from '../utils/formatters';
+import { analyticsService } from '../services/analyticsService';
 
 const monthlySpendByCategory = [
   { month: 'Jul', Manufacturing: 1800000, IT: 1200000, Logistics: 800000, Services: 400000 },
@@ -37,6 +38,13 @@ const vendorPerformance = [
 export default function Reports() {
   const [sortField, setSortField] = useState('win_rate');
   const [sortDir, setSortDir] = useState('desc');
+  const [summary, setSummary] = useState(null);
+
+  useEffect(() => {
+    analyticsService.summary()
+      .then(setSummary)
+      .catch(() => setSummary(null));
+  }, []);
 
   const sorted = [...vendorPerformance].sort((a, b) =>
     sortDir === 'desc' ? b[sortField] - a[sortField] : a[sortField] - b[sortField]
@@ -59,7 +67,7 @@ export default function Reports() {
     generateCSV(headers, rows, 'vendor-performance-report.csv');
   };
 
-  const totalSpend = 56827200;
+  const totalSpend = summary?.total_spend || 56827200;
 
   return (
     <div className="space-y-6">
@@ -77,7 +85,7 @@ export default function Reports() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <AnalyticsCard title="Total Spend (YTD)" value={formatCurrency(totalSpend)} icon={DollarSign} trend={{ direction: 'up', value: '18% YoY' }} color="bg-brand-500" />
         <AnalyticsCard title="Avg PO Value" value={formatCurrency(Math.round(totalSpend / 4))} icon={TrendingUp} color="bg-emerald-500" />
-        <AnalyticsCard title="Active Vendors" value="5" icon={Building2} trend={{ direction: 'up', value: '2 new' }} color="bg-violet-500" />
+        <AnalyticsCard title="Active Vendors" value={summary?.active_vendors ?? '5'} icon={Building2} trend={{ direction: 'up', value: '2 new' }} color="bg-violet-500" />
         <AnalyticsCard title="On-time Delivery" value="87%" icon={Truck} trend={{ direction: 'up', value: '4% improvement' }} color="bg-amber-500" />
       </div>
 

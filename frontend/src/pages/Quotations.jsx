@@ -5,14 +5,15 @@ import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
 import { useAuth, RoleGuard } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { mockQuotations, mockRFQs } from '../data/mockData';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import api from '../api/axios';
+import { quotationService } from '../services/quotationService';
+import { rfqService } from '../services/rfqService';
 
 export default function Quotations() {
   const { user } = useAuth();
   const toast = useToast();
   const [quotations, setQuotations] = useState([]);
+  const [rfqs, setRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('procurement'); // 'procurement' | 'vendor'
   const [showModal, setShowModal] = useState(false);
@@ -20,16 +21,21 @@ export default function Quotations() {
   const [viewQuote, setViewQuote] = useState(null);
   const [lineItems, setLineItems] = useState([]);
 
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm();
 
   useEffect(() => {
     const fetchQuotations = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/quotations');
-        setQuotations(res.data);
+        const [quotationData, rfqData] = await Promise.all([
+          quotationService.list(),
+          rfqService.list(),
+        ]);
+        setQuotations(quotationData);
+        setRfqs(rfqData);
       } catch {
-        setQuotations(mockQuotations);
+        setQuotations([]);
+        setRfqs([]);
       } finally {
         setLoading(false);
       }
@@ -52,10 +58,10 @@ export default function Quotations() {
     )},
   ];
 
-  const openRFQs = mockRFQs.filter(r => r.status === 'active');
+  const openRFQs = rfqs.filter(r => r.status === 'active');
 
   const handleRFQSelect = (rfqId) => {
-    const rfq = mockRFQs.find(r => r.id === parseInt(rfqId));
+    const rfq = rfqs.find(r => r.id === parseInt(rfqId));
     setSelectedRFQ(rfq);
     if (rfq) {
       setLineItems(rfq.items.map(item => ({
@@ -81,13 +87,11 @@ export default function Quotations() {
   const subtotal = lineItems.reduce((sum, item) => sum + (item.quantity * (item.unit_price || 0)), 0);
   const totalTax = grandTotal - subtotal;
 
-  const onSubmitQuotation = (data) => {
+  const onSubmitQuotation = async (data) => {
     if (!selectedRFQ) return;
-    const newQuote = {
-      id: Date.now(),
-      quote_number: `QT-${new Date().getFullYear()}-${String(quotations.length + 1).padStart(3, '0')}`,
+    try {
+      const payload = {
       rfq_id: selectedRFQ.id,
-      rfq_title: selectedRFQ.title,
       vendor_id: user.id,
       vendor_name: user.name,
       items: lineItems,
@@ -96,15 +100,18 @@ export default function Quotations() {
       total_amount: grandTotal,
       delivery_days: parseInt(data.delivery_days) || 0,
       notes: data.notes,
-      submitted_on: new Date().toISOString().split('T')[0],
       status: 'submitted',
-    };
-    setQuotations(prev => [newQuote, ...prev]);
-    setShowModal(false);
-    setSelectedRFQ(null);
-    setLineItems([]);
-    reset();
-    toast.success('Quotation submitted successfully');
+      };
+      const newQuote = await quotationService.create(payload);
+      setQuotations(prev => [newQuote, ...prev]);
+      setShowModal(false);
+      setSelectedRFQ(null);
+      setLineItems([]);
+      reset();
+      toast.success('Quotation submitted successfully');
+    } catch {
+      toast.error('Failed to submit quotation');
+    }
   };
 
   return (

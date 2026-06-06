@@ -1,10 +1,11 @@
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, FileText, ClipboardList, GitCompare,
-  CheckSquare, ShoppingCart, Receipt, Activity, BarChart3, LogOut, X, User, Settings
+  CheckSquare, ShoppingCart, Receipt, Activity, BarChart3, LogOut, X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { mockApprovals } from '../data/mockData';
+import { approvalService } from '../services/approvalService';
 
 /*
   Role-based access matrix:
@@ -42,7 +43,13 @@ const navItems = [
 export default function Sidebar({ mobileOpen, onClose }) {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const pendingCount = mockApprovals.filter(a => a.status === 'pending').length;
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    approvalService.list()
+      .then(data => setPendingCount(data.filter(a => a.status === 'pending').length))
+      .catch(() => setPendingCount(0));
+  }, [location.pathname]);
 
   const filteredItems = navItems.filter(item => {
     if (!user?.role) return false;

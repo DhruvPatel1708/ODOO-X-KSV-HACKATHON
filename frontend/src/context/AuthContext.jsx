@@ -1,6 +1,6 @@
+/* eslint-disable react-refresh/only-export-components, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../api/axios';
-import { mockUser } from '../data/mockData';
+import { authService } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -32,41 +32,26 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const res = await api.post('/api/auth/login', { email, password });
-      const { token, user: userData } = res.data;
+      const { token, user: userData } = await authService.login(email, password);
       localStorage.setItem('token', token);
       localStorage.setItem('vb_user', JSON.stringify(userData));
       setUser(userData);
       return { success: true };
     } catch (err) {
       // Mock fallback — keeps frontend usable without backend
-      if (email === 'admin@vendorbridge.com' && password === 'admin123') {
-        const mockToken = 'mock-jwt-token-' + Date.now();
-        localStorage.setItem('token', mockToken);
-        localStorage.setItem('vb_user', JSON.stringify(mockUser));
-        setUser(mockUser);
-        return { success: true };
-      }
-      return { success: false, error: 'Invalid email or password' };
+      return { success: false, error: err?.response?.data?.detail || err?.message || 'Invalid email or password' };
     }
   };
 
   const signup = async (name, email, password, role) => {
     try {
-      const res = await api.post('/api/auth/signup', { name, email, password, role });
-      const { token, user: userData } = res.data;
+      const { token, user: userData } = await authService.signup(name, email, password, role);
       localStorage.setItem('token', token);
       localStorage.setItem('vb_user', JSON.stringify(userData));
       setUser(userData);
       return { success: true };
-    } catch {
-      // Mock fallback
-      const mockNewUser = { id: Date.now(), name, email, role };
-      const mockToken = 'mock-jwt-token-' + Date.now();
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('vb_user', JSON.stringify(mockNewUser));
-      setUser(mockNewUser);
-      return { success: true };
+    } catch (err) {
+      return { success: false, error: err?.response?.data?.detail || err?.message || 'Signup failed' };
     }
   };
 

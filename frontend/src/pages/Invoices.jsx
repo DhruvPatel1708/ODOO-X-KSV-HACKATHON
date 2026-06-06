@@ -4,10 +4,9 @@ import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
 import { RoleGuard } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { mockInvoices } from '../data/mockData';
 import { formatCurrency, formatDate, numberToWords } from '../utils/formatters';
 import { generateInvoicePDF } from '../utils/generatePDF';
-import api from '../api/axios';
+import { invoiceService } from '../services/invoiceService';
 
 const statusTabs = ['All', 'draft', 'pending', 'sent', 'paid'];
 
@@ -24,10 +23,10 @@ export default function Invoices() {
     const fetchInvoices = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/invoices');
-        setInvoices(res.data);
+        const data = await invoiceService.list();
+        setInvoices(data);
       } catch {
-        setInvoices(mockInvoices);
+        setInvoices([]);
       } finally {
         setLoading(false);
       }
@@ -79,7 +78,7 @@ export default function Invoices() {
 
   const handleSendEmail = async () => {
     try {
-      await api.post(`/api/invoices/${viewInvoice.id}/send-email`, emailData).catch(() => {});
+      await invoiceService.sendEmail(viewInvoice.id, emailData);
       toast.success('Invoice sent via email');
       setShowEmailModal(false);
     } catch {

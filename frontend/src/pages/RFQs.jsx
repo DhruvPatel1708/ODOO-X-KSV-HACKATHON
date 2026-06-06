@@ -5,9 +5,9 @@ import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
 import { RoleGuard } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { mockRFQs, mockVendors } from '../data/mockData';
 import { formatDate } from '../utils/formatters';
-import api from '../api/axios';
+import { rfqService } from '../services/rfqService';
+import { vendorService } from '../services/vendorService';
 
 const statusTabs = ['All', 'draft', 'active', 'closed'];
 
@@ -17,6 +17,7 @@ export default function RFQs() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
   const [showModal, setShowModal] = useState(false);
+  const [vendors, setVendors] = useState([]);
 
   const { register, handleSubmit, control, formState: { errors }, reset } = useForm({
     defaultValues: {
@@ -32,10 +33,15 @@ export default function RFQs() {
     const fetchRFQs = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/rfqs');
-        setRfqs(res.data);
+        const [rfqData, vendorData] = await Promise.all([
+          rfqService.list(),
+          vendorService.list(),
+        ]);
+        setRfqs(rfqData);
+        setVendors(vendorData);
       } catch {
-        setRfqs(mockRFQs);
+        setRfqs([]);
+        setVendors([]);
       } finally {
         setLoading(false);
       }
@@ -61,21 +67,21 @@ export default function RFQs() {
     { key: 'status', label: 'Status', render: (val) => <StatusBadge status={val} /> },
   ];
 
-  const onSubmit = (data, isDraft = false) => {
-    const newRFQ = {
+  const onSubmit = async (data, isDraft = false) => {
+    try {
+      const payload = {
       ...data,
-      id: Date.now(),
-      rfq_number: `RFQ-${new Date().getFullYear()}-${String(rfqs.length + 1).padStart(3, '0')}`,
       status: isDraft ? 'draft' : 'active',
-      quotations_received: 0,
-      created_at: new Date().toISOString(),
-      created_by: 'Arjun Mehta',
-      vendors_invited: data.vendors_invited || [],
-    };
-    setRfqs(prev => [newRFQ, ...prev]);
-    setShowModal(false);
-    reset();
-    toast.success(isDraft ? 'RFQ saved as draft' : 'RFQ published successfully');
+      vendors_invited: (data.vendors_invited || []).map(Number),
+      };
+      const newRFQ = await rfqService.create(payload);
+      setRfqs(prev => [newRFQ, ...prev]);
+      setShowModal(false);
+      reset();
+      toast.success(isDraft ? 'RFQ saved as draft' : 'RFQ published successfully');
+    } catch {
+      toast.error('Failed to save RFQ');
+    }
   };
 
   return (
@@ -208,7 +214,7 @@ export default function RFQs() {
               <div>
                 <label className="label">Invite Vendors</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-3 bg-gray-50 rounded-xl">
-                  {mockVendors.filter(v => v.status === 'active').map(vendor => (
+                  {vendors.filter(v => v.status === 'active').map(vendor => (
                     <label key={vendor.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors">
                       <input
                         type="checkbox"

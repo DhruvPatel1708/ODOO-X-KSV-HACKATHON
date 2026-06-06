@@ -2,15 +2,13 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Search, Plus, Edit2, Eye, ToggleLeft, ToggleRight, X, Building2, Phone, Mail, MapPin } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
-import { useAuth, RoleGuard } from '../context/AuthContext';
+import { RoleGuard } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { mockVendors } from '../data/mockData';
-import api from '../api/axios';
+import { vendorService } from '../services/vendorService';
 
 const categories = ['All', 'Manufacturing', 'IT', 'Logistics', 'Services', 'Other'];
 
 export default function Vendors() {
-  const { hasRole } = useAuth();
   const toast = useToast();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,10 +24,10 @@ export default function Vendors() {
     const fetchVendors = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/vendors');
-        setVendors(res.data);
+        const data = await vendorService.list();
+        setVendors(data);
       } catch {
-        setVendors(mockVendors);
+        setVendors([]);
       } finally {
         setLoading(false);
       }
@@ -66,17 +64,11 @@ export default function Vendors() {
   const onSubmit = async (data) => {
     try {
       if (editVendor) {
-        try {
-          await api.put(`/api/vendors/${editVendor.id}`, data);
-        } catch {}
-        setVendors(prev => prev.map(v => v.id === editVendor.id ? { ...v, ...data } : v));
+        const updatedVendor = await vendorService.update(editVendor.id, data);
+        setVendors(prev => prev.map(v => v.id === editVendor.id ? updatedVendor : v));
         toast.success('Vendor updated successfully');
       } else {
-        const newVendor = { ...data, id: Date.now(), rating: 0, total_orders: 0 };
-        try {
-          const res = await api.post('/api/vendors', data);
-          newVendor.id = res.data.id || newVendor.id;
-        } catch {}
+        const newVendor = await vendorService.create(data);
         setVendors(prev => [...prev, newVendor]);
         toast.success('Vendor added successfully');
       }
@@ -86,10 +78,11 @@ export default function Vendors() {
     }
   };
 
-  const toggleStatus = (id) => {
+  const toggleStatus = async (id) => {
     setVendors(prev => prev.map(v => {
       if (v.id === id) {
         const newStatus = v.status === 'active' ? 'inactive' : 'active';
+        vendorService.update(id, { status: newStatus }).catch(() => {});
         toast.info(`Vendor marked as ${newStatus}`);
         return { ...v, status: newStatus };
       }

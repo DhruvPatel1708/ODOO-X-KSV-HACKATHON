@@ -37,7 +37,7 @@ export default function Profile() {
     }
   };
 
-  const onSubmit = async (data) => {
+  const onSubmit = async () => {
     setSaving(true);
     // Simulate save
     await new Promise(resolve => setTimeout(resolve, 1000));
