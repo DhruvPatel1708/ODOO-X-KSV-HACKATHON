@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, ShoppingCart, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, ShoppingCart, ArrowRight, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import loginHero from '../assets/login-hero.png';
 
 export default function Login() {
   const { login, signup } = useAuth();
+  const { darkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, watch, reset } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm();
 
   const onSubmit = async (data) => {
     setError('');
@@ -49,8 +52,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel — Brand */}
+    <div className="min-h-screen flex bg-white dark:bg-dark-bg">
+      {/* Left Panel — Brand with Hero Image */}
       <div className="hidden lg:flex lg:w-[45%] relative bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 overflow-hidden">
         {/* Decorative shapes */}
         <div className="absolute inset-0">
@@ -80,15 +83,25 @@ export default function Login() {
             <span className="text-brand-200">Simplified.</span>
           </h2>
 
-          <p className="text-brand-200 text-lg max-w-sm leading-relaxed">
+          <p className="text-brand-200 text-lg max-w-sm leading-relaxed mb-8">
             Streamline your procurement workflow from RFQ to Invoice. Manage vendors, compare quotations, and track approvals — all in one place.
           </p>
 
-          <div className="mt-12 flex items-center gap-4">
+          {/* Hero Image */}
+          <div className="relative max-w-md">
+            <div className="absolute -inset-2 bg-white/10 rounded-2xl backdrop-blur-sm" />
+            <img
+              src={loginHero}
+              alt="VendorBridge Platform"
+              className="relative rounded-xl shadow-2xl w-full object-cover"
+            />
+          </div>
+
+          <div className="mt-8 flex items-center gap-4">
             <div className="flex -space-x-3">
-              {['AM', 'PK', 'SR'].map((initials, i) => (
+              {['AM', 'PK', 'SR'].map((init, i) => (
                 <div key={i} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center text-white text-xs font-bold">
-                  {initials}
+                  {init}
                 </div>
               ))}
             </div>
@@ -100,20 +113,28 @@ export default function Login() {
       </div>
 
       {/* Right Panel — Form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-white">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 relative">
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="absolute top-6 right-6 p-2 rounded-xl bg-gray-100 dark:bg-dark-card hover:bg-gray-200 dark:hover:bg-dark-border text-gray-600 dark:text-gray-400 transition-all"
+        >
+          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center">
               <ShoppingCart className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">VendorBridge</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">VendorBridge</span>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {isSignUp ? 'Create Account' : 'Welcome back'}
           </h1>
-          <p className="text-gray-500 mb-8">
+          <p className="text-gray-500 dark:text-gray-400 mb-8">
             {isSignUp
               ? 'Enter your details to get started'
               : 'Enter your credentials to access your account'}
@@ -121,7 +142,7 @@ export default function Login() {
 
           {/* Error banner */}
           {error && (
-            <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2" style={{ animation: 'slideUp 0.3s ease' }}>
+            <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm font-medium flex items-center gap-2" style={{ animation: 'slideUp 0.3s ease' }}>
               <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
@@ -188,7 +209,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -213,7 +234,7 @@ export default function Login() {
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500" />
-                  <span className="text-sm text-gray-600">Remember me</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
                 </label>
                 <button
                   type="button"
@@ -241,7 +262,7 @@ export default function Login() {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-gray-500">
+          <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               onClick={toggleMode}
@@ -252,8 +273,8 @@ export default function Login() {
           </p>
 
           {!isSignUp && (
-            <div className="mt-6 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs text-gray-500 text-center">
+            <div className="mt-6 px-4 py-3 rounded-xl bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border">
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                 <strong>Demo:</strong> admin@vendorbridge.com / admin123
               </p>
             </div>
