@@ -11,6 +11,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY not configured")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
