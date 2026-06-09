@@ -170,3 +170,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ## Team
 
 Developed during the Odoo KSV Hackathon as a rapid MVP demonstrating end-to-end procurement digitization through a modern ERP workflow.
+
+## Deployment: https://odoo-xksv.vercel.app/
+
